@@ -6,9 +6,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
-var envPath = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "../../..", ".env"));
-Console.WriteLine($"Loading .env from: {envPath}");
-Env.Load(envPath);
+// var envPath = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "../../..", ".env"));
+// Console.WriteLine($"Loading .env from: {envPath}");
+// Env.Load(envPath);
 
 var builder = WebApplication.CreateBuilder(args);
 

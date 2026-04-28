@@ -8,12 +8,10 @@ internal static class PostgresInjector
 
     internal static IServiceCollection InjectPostgres(this IServiceCollection services, IConfiguration configuration)
     {
-        bool isRunningOnDocker = Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") is "true";
-
         var port2 = Environment.GetEnvironmentVariable("POSTGRES_PORT")!;
 
 
-        var host = (isRunningOnDocker ? configuration["POSTGRES_HOST_DOCKER"] : configuration["POSTGRES_HOST"])!;
+        var host = configuration["POSTGRES_HOST"]!;
         var port = configuration["POSTGRES_PORT"]!;
         var db = configuration["POSTGRES_DB"]!;
         var user = configuration["POSTGRES_USER"]!;
@@ -23,6 +21,7 @@ internal static class PostgresInjector
         var minor = configuration.GetValue<int>("POSTGRES_MINOR_VERSION");
 
         var connectionString = $"Host={host};Port={port};Database={db};Username={user};Password={password}; Pooling=true; Minimum Pool Size=10; Maximum Pool Size=100;Include Error Detail=true;";
+
 
         // Validate PostgreSQL connectivity during application startup
         ValidatePostgresConnection(connectionString);
@@ -67,6 +66,7 @@ internal static class PostgresInjector
             try
             {
                 using var connection = new NpgsqlConnection(connectionString);
+                Console.WriteLine("PostgreSQL connectiing to {0}.", connectionString);
                 connection.Open();
 
                 using var command = new NpgsqlCommand("SELECT 1", connection);

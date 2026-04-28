@@ -30,8 +30,8 @@ TestResults/
 **/Properties/PublishProfiles/
 
 # Environment & secrets
-.env
-.env.*
+# .env
+# .env.*
 appsettings.Development.json
 secrets.json
 

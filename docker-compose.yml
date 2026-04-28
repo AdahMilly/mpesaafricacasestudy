@@ -10,7 +10,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "${POSTGRES_PORT}:5432"
+      - "${POSTGRES_PORT}:${POSTGRES_PORT}"
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
       interval: 30s
@@ -21,6 +21,62 @@ services:
       - db-data:/var/lib/postgresql
     networks:
       - casestudy-bridge
+
+  backend:
+    container_name: casestudy_backend
+    build:
+      context: ./Backend/casestudy_api/
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      DOTNET_RUNNING_IN_CONTAINER: "true"
+      ASPNETCORE_URLS: http://+:${BACKEND_PORT}
+    ports:
+      - "5046:${BACKEND_PORT}"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - casestudy-bridge
+    restart: always
+
+  frontend:
+    container_name: casestudy_frontend
+    build:
+      context: ./my-app
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+    env_file:
+      - .env
+    ports:
+      - "${FRONTEND_PORT}:${FRONTEND_PORT}"
+    depends_on:
+      - backend
+    networks:
+      - casestudy-bridge
+    restart: always
+
+  nginx:
+    container_name: casestudy_nginx
+    image: nginx:alpine
+    ports:
+      - "${NGINX_PORT}:${NGINX_PORT}"
+    volumes:
+      - ./nginx/nginx.conf.template:/etc/nginx/templates/default.conf.template:ro
+    environment:
+      - BACKEND_HOST=${BACKEND_HOST}
+      - BACKEND_PORT=${BACKEND_PORT}
+      - FRONTEND_HOST=${FRONTEND_HOST}
+      - FRONTEND_PORT=${FRONTEND_PORT}
+      - NGINX_PORT=${NGINX_PORT}
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - casestudy-bridge
+    restart: always
 
 volumes:
   db-data:

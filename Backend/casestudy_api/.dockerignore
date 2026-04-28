@@ -1,7 +1,12 @@
 **/.classpath
 **/.dockerignore
-**/.env
+# **/.env
 **/.git
+bin/
+obj/
+.vs/
+*.user
+**/*.log
 **/.gitignore
 **/.project
 **/.settings
