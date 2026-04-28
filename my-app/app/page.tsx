@@ -32,6 +32,10 @@ export default function Home() {
 
         const data: AuthResponse = await res.json();
 
+        console.log(
+          `Res --> ${data} :: Url --> ${BASE_URL}/Authentication/login`,
+        );
+
         if (!res.ok) throw new Error(data.message || "Login failed");
 
         localStorage.setItem("token", data.token || "");
@@ -45,6 +49,10 @@ export default function Home() {
         });
 
         const data: AuthResponse = await res.json();
+
+        console.log(
+          `Res --> ${data} :: Url --> ${BASE_URL}/Authentication/register`,
+        );
 
         if (!res.ok) throw new Error(data.message || "Registration failed");
 

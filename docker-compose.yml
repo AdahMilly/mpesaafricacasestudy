@@ -33,7 +33,7 @@ services:
       DOTNET_RUNNING_IN_CONTAINER: "true"
       ASPNETCORE_URLS: http://+:${BACKEND_PORT}
     ports:
-      - "5046:${BACKEND_PORT}"
+      - "${BACKEND_PORT}:${BACKEND_PORT}"
     depends_on:
       db:
         condition: service_healthy
@@ -62,7 +62,7 @@ services:
     container_name: casestudy_nginx
     image: nginx:alpine
     ports:
-      - "${NGINX_PORT}:${NGINX_PORT}"
+      - "${EXT_NGINX_PORT}:${NGINX_PORT}"
     volumes:
       - ./nginx/nginx.conf.template:/etc/nginx/templates/default.conf.template:ro
     environment:

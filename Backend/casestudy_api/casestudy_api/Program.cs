@@ -6,9 +6,12 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
+//if (app.Environment.IsDevelopment())
+//{
 // var envPath = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "../../..", ".env"));
 // Console.WriteLine($"Loading .env from: {envPath}");
 // Env.Load(envPath);
+//}
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -58,16 +61,13 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:3000")
+        policy.WithOrigins("http://localhost:3000", "http://localhost:8085")
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
 });
 var app = builder.Build();
 
-//
-// Automatically apply pending EF Core migrations
-//
 using (var scope = app.Services.CreateScope())
 {
     var logger = scope.ServiceProvider
@@ -93,11 +93,11 @@ using (var scope = app.Services.CreateScope())
 
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
+//if (app.Environment.IsDevelopment())
+//{
     app.UseSwagger();
     app.UseSwaggerUI();
-}
+//}
 app.UseCors("AllowFrontend");
 app.UseHttpsRedirection();
 
