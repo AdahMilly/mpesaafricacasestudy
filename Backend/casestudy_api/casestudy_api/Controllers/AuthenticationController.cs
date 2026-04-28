@@ -30,49 +30,73 @@ namespace casestudy_api.Controllers
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterDto dto)
         {
-            var existingUser = await _userManager.FindByEmailAsync(dto.Email);
-            if (existingUser != null)
-                return BadRequest(new { message = "Email already in use." });
-
-            var user = new ApplicationUser
+            try
             {
-                UserName = dto.Email,
-                Email = dto.Email,
-                FullName = dto.FullName
-            };
+                var existingUser = await _userManager.FindByEmailAsync(dto.Email);
+                if (existingUser != null)
+                    return BadRequest(new { message = "Email already in use." });
 
-            var result = await _userManager.CreateAsync(user, dto.Password);
-            if (!result.Succeeded)
-                return BadRequest(result.Errors);
+                var user = new ApplicationUser
+                {
+                    UserName = dto.Email,
+                    Email = dto.Email,
+                    FullName = dto.FullName
+                };
 
-            var token = _tokenService.GenerateToken(user);
-            return Ok(new AuthResponseDto { Token = token, Email = user.Email!, FullName = user.FullName! });
+                var result = await _userManager.CreateAsync(user, dto.Password);
+                if (!result.Succeeded)
+                    return BadRequest(result.Errors);
+
+                var token = _tokenService.GenerateToken(user);
+                return Ok(new AuthResponseDto { Token = token, Email = user.Email!, FullName = user.FullName! });
+
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
         }
 
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDto dto)
         {
-            var user = await _userManager.FindByEmailAsync(dto.Email);
-            if (user == null)
-                return Unauthorized(new { message = "Invalid email or password." });
+            try
+            {
+                var user = await _userManager.FindByEmailAsync(dto.Email);
+                if (user == null)
+                    return Unauthorized(new { message = "Invalid email or password." });
 
-            var result = await _signInManager.CheckPasswordSignInAsync(user, dto.Password, lockoutOnFailure: false);
-            if (!result.Succeeded)
-                return Unauthorized(new { message = "Invalid email or password." });
+                var result = await _signInManager.CheckPasswordSignInAsync(user, dto.Password, lockoutOnFailure: false);
+                if (!result.Succeeded)
+                    return Unauthorized(new { message = "Invalid email or password." });
 
-            var token = _tokenService.GenerateToken(user);
-            _logger.LogInformation("User {Email} logged in at {Time}", user.Email, DateTime.UtcNow);
+                var token = _tokenService.GenerateToken(user);
+                _logger.LogInformation("User {Email} logged in at {Time}", user.Email, DateTime.UtcNow);
 
-            return Ok(new AuthResponseDto { Token = token, Email = user.Email!, FullName = user.FullName ?? "" });
+                return Ok(new AuthResponseDto { Token = token, Email = user.Email!, FullName = user.FullName ?? "" });
+            }
+            catch (Exception ex)
+            {
+
+                throw;
+            }
         }
 
         [Authorize]
         [HttpPost("logout")]
         public async Task<IActionResult> Logout()
         {
-            await _signInManager.SignOutAsync();
-            _logger.LogInformation("User logged out at {Time}", DateTime.UtcNow);
-            return Ok(new { message = "Logged out successfully." });
+            try
+            {
+                await _signInManager.SignOutAsync();
+                _logger.LogInformation("User logged out at {Time}", DateTime.UtcNow);
+                return Ok(new { message = "Logged out successfully." });
+            }
+            catch (Exception ex)
+            {
+
+                throw;
+            }
         }
     }
 }

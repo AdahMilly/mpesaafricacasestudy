@@ -1,8 +1,14 @@
 using casestudy_api.Services;
+using DotNetEnv;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+
+var envPath = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "../../..", ".env"));
+Console.WriteLine($"Loading .env from: {envPath}");
+Env.Load(envPath);
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -48,8 +54,43 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.WithOrigins("http://localhost:3000")
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
 var app = builder.Build();
+
+//
+// Automatically apply pending EF Core migrations
+//
+using (var scope = app.Services.CreateScope())
+{
+    var logger = scope.ServiceProvider
+        .GetRequiredService<ILogger<Program>>();
+
+    try
+    {
+        var dbContext = scope.ServiceProvider
+            .GetRequiredService<PortalDbContext>();
+
+        logger.LogInformation("Applying database migrations...");
+
+        await dbContext.Database.MigrateAsync();
+
+        logger.LogInformation("Database migrations applied successfully.");
+    }
+    catch (Exception ex)
+    {
+        logger.LogCritical(ex, "An error occurred while applying database migrations.");
+        throw;
+    }
+}
+
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -57,7 +98,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-
+app.UseCors("AllowFrontend");
 app.UseHttpsRedirection();
 
 app.UseAuthorization();
