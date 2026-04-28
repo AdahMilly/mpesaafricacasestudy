@@ -755,6 +755,40 @@ docker-compose up --build
 * Uses environment variables for **secure configuration**
 * Ensures reliability with **health checks and restart policies**
 
+#  Docker Build Optimization (.dockerignore Strategy)
+
+To improve Docker build performance and ensure clean production images, both the frontend and backend use optimized `.dockerignore` files.
+
+These files reduce the build context size by excluding unnecessary files from being sent to Docker during image creation.
+
+---
+
+##  What is excluded
+
+- Build artifacts (`bin/`, `obj/`, `.next/`, `out/`)
+- Dependencies (`node_modules/`)
+- Environment files (`.env*`)
+- Logs and debug files (`*.log`)
+- IDE/editor files (`.vscode/`, `.idea/`, `.vs/`)
+- Operating system files (`.DS_Store`, `Thumbs.db`)
+- Git metadata (`.git`)
+
+---
+
+##  Why this matters
+
+- Reduces Docker build time  
+- Minimizes image size  
+- Prevents leaking sensitive or local development files  
+- Improves caching efficiency during builds  
+- Ensures only production-relevant files are included  
+
+---
+
+##  Result
+
+This optimization ensures a faster, cleaner, and more secure container build process aligned with production best practices.
+
 > This setup provides a complete, reproducible local development environment with a single command.
 
 ## Nginx Reverse Proxy Configuration
