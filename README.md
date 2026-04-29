@@ -329,13 +329,6 @@ proxy_set_header Connection 'upgrade';
 * No direct exposure of internal services
 * Environment-based configuration (no hardcoding)
 
----
-
-##  Summary
-> Nginx acts as a reverse proxy that routes incoming traffic to the appropriate service (frontend or backend), enabling a unified entry point, improved security, and clean service communication within the containerized environment.
-
----
-
 ##  docker-compose.yml
 
 ```yaml
