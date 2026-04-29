@@ -132,19 +132,6 @@ ENTRYPOINT ["dotnet", "casestudy_api.dll"]
 
 The container is configured to run as a non-root user for improved security, and only the necessary application files are included in the final image, resulting in a minimal, efficient, and production-ready deployment artifact.
 
-### Docker Compose Setup
-
-This project uses **Docker Compose** to orchestrate all services required to run the application locally.
-
-The setup includes:
-
-*  PostgreSQL database
-*  Backend (.NET API)
-*  Frontend (Next.js)
-*  Nginx reverse proxy
-
-All services are connected through a shared Docker network and configured using environment variables from a `.env` file.
-
 ## Nginx Reverse Proxy Configuration
 
 Nginx is used as a **reverse proxy** to route incoming requests to the appropriate service:
@@ -328,6 +315,20 @@ proxy_set_header Connection 'upgrade';
 * Clean separation of concerns
 * No direct exposure of internal services
 * Environment-based configuration (no hardcoding)
+
+
+### Docker Compose Setup
+
+This project uses **Docker Compose** to orchestrate all services required to run the application locally.
+
+The setup includes:
+
+*  PostgreSQL database
+*  Backend (.NET API)
+*  Frontend (Next.js)
+*  Nginx reverse proxy
+
+All services are connected through a shared Docker network and configured using environment variables from a `.env` file.
 
 ##  docker-compose.yml
 
