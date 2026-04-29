@@ -72,8 +72,6 @@ EXPOSE 3000
 CMD ["node", "server.js"]
 ```
 
-This Dockerfile uses a **multi-stage build** to create a **small, secure, and production-ready image**.
-
 ---
 
 ## Summary of Build Stages
@@ -961,7 +959,9 @@ It ensures that only secure, tested, approved, and traceable code reaches produc
 
 ### Containerization sketch
 
-<img width="2462" height="2844" alt="IMG_2989" src="https://github.com/user-attachments/assets/82c86660-5713-4911-8c69-345c6f347b4f" />
+
+<img width="2851" height="4026" alt="IMG_2990" src="https://github.com/user-attachments/assets/b0f1a934-7b58-45fa-9fc0-4d6c22b5379e" />
+
 
 ### CI/CD flow sketch
 
@@ -991,7 +991,8 @@ Services within the Docker network can communicate using service names (e.g., `b
 The pipeline can:
 - Build Docker images  
 - Access a container registry (e.g., Docker Hub, Azure Container Registry)  
-- Deploy to the target environment  
+- Deploy to the target environment
+- Implement security checks and quality gates  
 
 ### 7. Basic DevOps Tooling is Available
 The team can manage:
@@ -1038,6 +1039,24 @@ Evolve from Docker Compose to a container orchestration platform like Kubernetes
 - **Auto-scaling:** Handle salary-date traffic spikes automatically  
 - **Self-healing:** Restart failed services without manual intervention  
 - **Rolling deployments & fast rollbacks:** Safer releases across all deployements   
+
+---
+
+---
+
+### 3. Proper secret management
+
+Sensitive data (API keys, DB credentials) can be moved to secure storage (e.g., pipeline secrets, secret managers) without blocking current development workflows. 
+
+---
+
+---
+
+### 3. AIOps
+
+- For threat detection and vulnerability management in DevSecOps
+- Intelligence around pipelines, monitoring and logging.
+
 
 ---
 
