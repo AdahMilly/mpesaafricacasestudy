@@ -145,6 +145,195 @@ The setup includes:
 
 All services are connected through a shared Docker network and configured using environment variables from a `.env` file.
 
+## Nginx Reverse Proxy Configuration
+
+Nginx is used as a **reverse proxy** to route incoming requests to the appropriate service:
+
+* `/` → Frontend (Next.js)
+* `/api`, `/swagger`, `/Authentication` → Backend (.NET API)
+
+This provides a **single entry point** for the entire application.
+
+---
+
+##  nginx.conf (Template)
+
+```nginx
+upstream backend {
+    server ${BACKEND_HOST}:${BACKEND_PORT};
+}
+
+upstream frontend {
+    server ${FRONTEND_HOST}:${FRONTEND_PORT};
+}
+
+server {
+    listen ${NGINX_PORT};
+
+    location /api/ {
+        proxy_pass http://backend;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+
+    location /swagger/ {
+        proxy_pass http://backend;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+    }
+
+    location /Authentication/ {
+        proxy_pass http://backend;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+
+    location / {
+        proxy_pass http://frontend;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+```
+
+---
+
+# Explanation
+
+##  Upstream Services
+
+```nginx
+upstream backend {
+    server ${BACKEND_HOST}:${BACKEND_PORT};
+}
+
+upstream frontend {
+    server ${FRONTEND_HOST}:${FRONTEND_PORT};
+}
+```
+
+* Defines backend and frontend services
+* Uses environment variables for flexibility
+* Allows Nginx to route traffic dynamically
+
+---
+
+##  Server Block
+
+```nginx
+server {
+    listen ${NGINX_PORT};
+}
+```
+
+* Nginx listens on a configurable port
+* Acts as the **entry point** for all requests
+
+---
+
+##  API Routing
+
+```nginx
+location /api/ {
+    proxy_pass http://${BACKEND_HOST}:${BACKEND_PORT};
+}
+```
+
+* Routes all `/api` requests to the backend
+* Ensures frontend communicates with backend via Nginx
+
+---
+
+##  Swagger Routing
+
+```nginx
+location /swagger/ {
+    proxy_pass http://${BACKEND_HOST}:${BACKEND_PORT};
+}
+```
+
+* Exposes backend API documentation through Nginx
+
+---
+
+##  Authentication Routing
+
+```nginx
+location /Authentication/ {
+    proxy_pass http://${BACKEND_HOST}:${BACKEND_PORT};
+}
+```
+
+* Routes authentication-related requests to backend
+
+---
+
+##  Frontend Routing
+
+```nginx
+location / {
+    proxy_pass http://${FRONTEND_HOST}:${FRONTEND_PORT};
+}
+```
+
+* Routes all other traffic to the frontend
+* Serves the Next.js application
+
+---
+
+##  Headers and Proxy Settings
+
+### Common headers used:
+
+```nginx
+proxy_set_header Host $host;
+proxy_set_header X-Real-IP $remote_addr;
+proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+```
+
+* Preserve original client request information
+* Important for logging, security, and debugging
+
+---
+
+### WebSocket Support (Frontend)
+
+```nginx
+proxy_set_header Upgrade $http_upgrade;
+proxy_set_header Connection 'upgrade';
+```
+
+* Enables support for WebSockets (used by Next.js)
+
+---
+
+#  Why Nginx is Used
+
+* Provides a **single access point** for all services
+* Simplifies frontend-backend communication
+* Handles routing and request forwarding
+* Improves scalability and maintainability
+
+---
+
+#  Final Outcome
+
+* Frontend and backend are accessible through one URL
+* Clean separation of concerns
+* No direct exposure of internal services
+* Environment-based configuration (no hardcoding)
+
+---
+
+##  Summary
+> Nginx acts as a reverse proxy that routes incoming traffic to the appropriate service (frontend or backend), enabling a unified entry point, improved security, and clean service communication within the containerized environment.
+
 ---
 
 ##  docker-compose.yml
@@ -389,196 +578,7 @@ This optimization ensures a faster, cleaner, and more secure container build pro
 
 > This setup provides a complete, reproducible local development environment with a single command.
 
-## Nginx Reverse Proxy Configuration
-
-Nginx is used as a **reverse proxy** to route incoming requests to the appropriate service:
-
-* `/` → Frontend (Next.js)
-* `/api`, `/swagger`, `/Authentication` → Backend (.NET API)
-
-This provides a **single entry point** for the entire application.
-
----
-
-##  nginx.conf (Template)
-
-```nginx
-upstream backend {
-    server ${BACKEND_HOST}:${BACKEND_PORT};
-}
-
-upstream frontend {
-    server ${FRONTEND_HOST}:${FRONTEND_PORT};
-}
-
-server {
-    listen ${NGINX_PORT};
-
-    location /api/ {
-        proxy_pass http://backend;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    }
-
-    location /swagger/ {
-        proxy_pass http://backend;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-    }
-
-    location /Authentication/ {
-        proxy_pass http://backend;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-
-    location / {
-        proxy_pass http://frontend;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-    }
-}
-```
-
----
-
-# Explanation
-
-##  Upstream Services
-
-```nginx
-upstream backend {
-    server ${BACKEND_HOST}:${BACKEND_PORT};
-}
-
-upstream frontend {
-    server ${FRONTEND_HOST}:${FRONTEND_PORT};
-}
-```
-
-* Defines backend and frontend services
-* Uses environment variables for flexibility
-* Allows Nginx to route traffic dynamically
-
----
-
-##  Server Block
-
-```nginx
-server {
-    listen ${NGINX_PORT};
-}
-```
-
-* Nginx listens on a configurable port
-* Acts as the **entry point** for all requests
-
----
-
-##  API Routing
-
-```nginx
-location /api/ {
-    proxy_pass http://${BACKEND_HOST}:${BACKEND_PORT};
-}
-```
-
-* Routes all `/api` requests to the backend
-* Ensures frontend communicates with backend via Nginx
-
----
-
-##  Swagger Routing
-
-```nginx
-location /swagger/ {
-    proxy_pass http://${BACKEND_HOST}:${BACKEND_PORT};
-}
-```
-
-* Exposes backend API documentation through Nginx
-
----
-
-##  Authentication Routing
-
-```nginx
-location /Authentication/ {
-    proxy_pass http://${BACKEND_HOST}:${BACKEND_PORT};
-}
-```
-
-* Routes authentication-related requests to backend
-
----
-
-##  Frontend Routing
-
-```nginx
-location / {
-    proxy_pass http://${FRONTEND_HOST}:${FRONTEND_PORT};
-}
-```
-
-* Routes all other traffic to the frontend
-* Serves the Next.js application
-
----
-
-##  Headers and Proxy Settings
-
-### Common headers used:
-
-```nginx
-proxy_set_header Host $host;
-proxy_set_header X-Real-IP $remote_addr;
-proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-```
-
-* Preserve original client request information
-* Important for logging, security, and debugging
-
----
-
-### WebSocket Support (Frontend)
-
-```nginx
-proxy_set_header Upgrade $http_upgrade;
-proxy_set_header Connection 'upgrade';
-```
-
-* Enables support for WebSockets (used by Next.js)
-
----
-
-#  Why Nginx is Used
-
-* Provides a **single access point** for all services
-* Simplifies frontend-backend communication
-* Handles routing and request forwarding
-* Improves scalability and maintainability
-
----
-
-#  Final Outcome
-
-* Frontend and backend are accessible through one URL
-* Clean separation of concerns
-* No direct exposure of internal services
-* Environment-based configuration (no hardcoding)
-
----
-
-##  Summary
-> Nginx acts as a reverse proxy that routes incoming traffic to the appropriate service (frontend or backend), enabling a unified entry point, improved security, and clean service communication within the containerized environment.
-
-# Enterprise Azure DevOps CI/CD Pipeline Documentation
+### Enterprise Azure DevOps CI/CD Pipeline Documentation
 
 ## Overview
 
