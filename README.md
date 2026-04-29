@@ -571,7 +571,7 @@ This optimization ensures a faster, cleaner, and more secure container build pro
 
 > This setup provides a complete, reproducible local development environment with a single command.
 
-### Enterprise Azure DevOps CI/CD Pipeline Documentation
+# Enterprise Azure DevOps CI/CD Pipeline Documentation
 
 ## Overview
 
@@ -968,4 +968,82 @@ This pipeline delivers enterprise-grade software delivery by combining:
 * Operational Resilience
 
 It ensures that only secure, tested, approved, and traceable code reaches production.
+
+# Assumptions & Future Improvements
+
+## Assumptions
+
+### 1. Consistent Container Runtime Environment
+Docker is available and supported across development, staging, and production environments, ensuring consistent builds and deployments.
+
+### 2. Application is Container-Ready
+Both frontend and backend services can be containerized without requiring major architectural changes.
+
+### 3. Environment-Based Configuration is Supported
+The application can safely consume configuration via environment variables (`.env`) without relying on hardcoded values.
+
+### 4. Database Fits Containerized Development Model
+PostgreSQL can run reliably in a containerized setup for development and testing, with persistence handled via Docker volumes.
+
+### 5. Network Communication Within Containers is Reliable
+Services within the Docker network can communicate using service names (e.g., `backend`, `db`) without additional networking complexity.
+
+### 6. CI/CD Pipeline Has Access to Required Resources
+The pipeline can:
+- Build Docker images  
+- Access a container registry (e.g., Docker Hub, Azure Container Registry)  
+- Deploy to the target environment  
+
+### 7. Basic DevOps Tooling is Available
+The team can manage:
+- Docker and Docker Compose  
+- CI/CD pipelines  
+- Basic debugging and logging  
+
+### 8. Security Practices Can Be Gradually Introduced
+Sensitive data (API keys, DB credentials) can be moved to secure storage (e.g., pipeline secrets, secret managers) without blocking current development workflows.
+
+### 9. Build and Deployment Artifacts are Immutable
+Docker images are treated as immutable artifacts, enabling consistent deployments and easier rollbacks.
+
+### 10. Local and CI Environments are Aligned
+The same Docker-based setup used locally (`docker-compose`) closely mirrors the CI/CD and deployment environments, reducing environment-specific issues.
+
+
+---
+
+## Improvement With More Time
+
+### 1. Centralized Observability Across All Markets
+
+Introduce a full observability stack to unify monitoring, logging, and tracing:
+
+- **Metrics:** Prometheus  
+- **Visualization:** Grafana  
+- **Logging:** ELK Stack
+- **Tracing:** OpenTelemetry  
+
+#### Why This Matters
+
+- Moves the team from **reactive** (customer complaints) to **proactive** (automated alerts)
+- Enables **fast root cause analysis** (minutes instead of hours)
+
+---
+
+### 2. Transition to Kubernetes for Production
+
+Evolve from Docker Compose to a container orchestration platform like Kubernetes (or K3s for simplicity).
+
+#### Benefits
+
+- **Auto-scaling:** Handle salary-date traffic spikes automatically  
+- **Self-healing:** Restart failed services without manual intervention  
+- **Rolling deployments & fast rollbacks:** Safer releases across all deployements   
+
+---
+
+## Summary
+
+The current solution provides a strong, secure, and scalable foundation. With centralized observability and Kubernetes-based orchestration, it can evolve into a highly resilient, enterprise-grade platform capable of handling multi-market financial workloads reliably.
+
 
