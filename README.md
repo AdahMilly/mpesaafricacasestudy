@@ -953,13 +953,11 @@ The pipeline stores:
 
 This pipeline delivers enterprise-grade software delivery by combining:
 
-* Continuous Integration
-* Continuous Delivery
-* Security Automation
-* Governance Controls
-* Operational Resilience
+* Continuous Integration, Continuous Delivery, Security Automation, Governance Controls, Operational Resilience
 
 It ensures that only secure, tested, approved, and traceable code reaches production.
+
+
 
 # Assumptions & Future Improvements
 
