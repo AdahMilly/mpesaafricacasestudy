@@ -508,34 +508,6 @@ volumes:
 
 All sensitive and environment-specific values are stored in a `.env` file.
 
-### Example:
-
-#  Running the Application
-
-Start all services with a single command:
-
-```bash
-docker-compose up --build
-```
-
----
-
-#  Expected Outcome
-
-* All containers start successfully
-* Services communicate via Docker network
-* Application accessible via Nginx
-* No secrets are hardcoded
-
----
-
-#  Summary
-
-* Uses Docker Compose for **multi-container orchestration**
-* Separates concerns across services (frontend, backend, DB, proxy)
-* Uses environment variables for **secure configuration**
-* Ensures reliability with **health checks and restart policies**
-
 #  Docker Build Optimization (.dockerignore Strategy)
 
 To improve Docker build performance and ensure clean production images, both the frontend and backend use optimized `.dockerignore` files.
@@ -571,6 +543,25 @@ These files reduce the build context size by excluding unnecessary files from be
 This optimization ensures a faster, cleaner, and more secure container build process aligned with production best practices.
 
 > This setup provides a complete, reproducible local development environment with a single command.
+
+#  Running the Application
+
+Start all services with a single command:
+
+```bash
+docker-compose up --build
+```
+
+---
+
+#  Expected Outcome
+
+* All containers start successfully
+* Services communicate via Docker network
+* Application accessible via Nginx
+* No secrets are hardcoded
+
+---
 
 # Enterprise Azure DevOps CI/CD Pipeline Documentation
 
