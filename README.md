@@ -959,9 +959,13 @@ It ensures that only secure, tested, approved, and traceable code reaches produc
 
 #An architecture design sketch
 
-<img width="2462" height="3844" alt="IMG_2989" src="https://github.com/user-attachments/assets/82c86660-5713-4911-8c69-345c6f347b4f" />
+### Containerization sketch
 
-<img width="2607" height="3822" alt="IMG_2988" src="https://github.com/user-attachments/assets/89f4f01f-c5c9-4dd9-939e-860c010d9e2e" />
+<img width="2462" height="2844" alt="IMG_2989" src="https://github.com/user-attachments/assets/82c86660-5713-4911-8c69-345c6f347b4f" />
+
+### CI/CD flow sketch
+
+<img width="2607" height="2822" alt="IMG_2988" src="https://github.com/user-attachments/assets/89f4f01f-c5c9-4dd9-939e-860c010d9e2e" />
 
 
 # Assumptions & Future Improvements
