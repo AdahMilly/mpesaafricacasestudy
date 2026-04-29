@@ -978,6 +978,403 @@ proxy_set_header Connection 'upgrade';
 ---
 
 ##  Summary
-
 > Nginx acts as a reverse proxy that routes incoming traffic to the appropriate service (frontend or backend), enabling a unified entry point, improved security, and clean service communication within the containerized environment.
+
+# Enterprise Azure DevOps CI/CD Pipeline Documentation
+
+## Overview
+
+This pipeline implements a production-grade CI/CD workflow for a containerized application deployed to Azure. It prioritizes:
+
+* Code quality
+* Security at every stage
+* Automated deployments
+* Safe production releases
+* Automatic rollback
+* Full traceability
+
+---
+
+## Pipeline Triggers
+
+The pipeline automatically runs when code is pushed to:
+
+* `develop`
+* `main`
+
+It also validates pull requests targeting these branches.
+
+```yaml
+trigger:
+  branches:
+    include:
+      - main
+      - develop
+
+pr:
+  branches:
+    include:
+      - main
+      - develop
+```
+
+### Why This Matters
+
+* Prevents unvalidated code from entering important branches.
+* Ensures every change is tested automatically.
+* Provides immediate feedback during development.
+
+---
+
+## Variable Management
+
+```yaml
+variables:
+  - group: casestudy-variable-group
+```
+
+### Recommended Variables
+
+| Variable                   | Purpose                    |
+| -------------------------- | -------------------------- |
+| `AZURE_SERVICE_CONNECTION` | Azure authentication       |
+| `AZURE_RESOURCE_GROUP`     | Azure resource group       |
+| `ACR_REGISTRY`             | Container registry URL     |
+| `ACR_LOGIN_SERVER`         | Registry login server      |
+| `STAGING_URL`              | Staging application URL    |
+| `PRODUCTION_URL`           | Production application URL |
+
+Mark all secrets (passwords, tokens, keys) as secret variables inside the variable group.
+
+---
+
+## Image Tagging Strategy
+
+Each Docker image is tagged using the Git commit SHA.
+
+```yaml
+variables:
+- name: IMAGE_TAG
+  value: $(Build.SourceVersion)
+```
+
+### Why This Matters
+
+* Every deployment is fully traceable.
+* Rollbacks become simple.
+* Images remain immutable.
+* Auditing is straightforward.
+
+---
+
+## Pipeline Stages
+
+## 1. Lint, Test & Code Coverage
+
+### Purpose
+
+Validates code quality before any build or deployment occurs.
+
+### What Happens
+
+* Backend linting
+* Frontend linting
+* Unit tests
+* Code coverage collection
+
+### Quality Gate
+
+The pipeline fails if coverage drops below 70%.
+
+```bash
+echo "##vso[task.logissue type=error]Code coverage is below 70%."
+```
+
+---
+
+## 2. Software Composition Analysis (SCA)
+
+### Purpose
+
+Scans third-party dependencies for known vulnerabilities.
+
+### Tools
+
+* `npm audit`
+* NuGet vulnerability scanning
+* OWASP Dependency Check
+
+---
+
+## 3. Static Application Security Testing (SAST)
+
+### Purpose
+
+Scans source code for security weaknesses.
+
+### Tool
+
+* Microsoft Security DevOps
+
+### Detects
+
+* SQL injection risks
+* Hardcoded secrets
+* Unsafe coding patterns
+* Security misconfigurations
+
+---
+
+## 4. Build & Push Docker Images
+
+### Purpose
+
+Builds production-ready container images.
+
+### What Happens
+
+* Build backend image
+* Build frontend image
+* Push both images to Azure Container Registry
+
+---
+
+## 5. Container Vulnerability Scan
+
+### Purpose
+
+Scans Docker images before deployment.
+
+### Tool
+
+* Trivy
+
+### Security Gate
+
+Deployment stops if HIGH or CRITICAL vulnerabilities are found.
+
+### Example Configuration
+
+```yaml
+- script: |
+    trivy image \
+      --severity HIGH,CRITICAL \
+      --exit-code 1 \
+      $(ACR_LOGIN_SERVER)/backend:$(IMAGE_TAG)
+  displayName: Scan Backend Container
+```
+
+### How It Works
+
+* `--severity HIGH,CRITICAL` scans only serious vulnerabilities.
+* `--exit-code 1` fails the pipeline if any are detected.
+* Prevents insecure images from being deployed.
+
+---
+
+## 6. Deploy to Staging
+
+### Purpose
+
+Deploys the application to a safe validation environment.
+
+---
+
+## 7. Dynamic Application Security Testing (DAST)
+
+### Purpose
+
+Tests the live staging application.
+
+### Detects
+
+* Authentication weaknesses
+* Missing security headers
+* Runtime vulnerabilities
+* Session management issues
+
+### Key Difference
+
+Unlike SAST, DAST tests the running application.
+
+---
+
+## 8. Manual Approval Gate
+
+### Purpose
+
+Requires human approval before production deployment.
+
+### Why It Matters
+
+* Prevents accidental releases.
+* Adds executive or operations oversight.
+* Supports compliance requirements.
+* Provides a final verification checkpoint.
+
+### How to Configure
+
+1. Open Azure DevOps.
+2. Navigate to **Pipelines > Environments**.
+3. Select the Production environment.
+4. Click **Approvals and Checks**.
+5. Add an **Approval** check.
+6. Specify approvers.
+7. Save the configuration.
+
+### Enforcement Flow
+
+```text
+Deploy to Staging
+       │
+       ▼
+    DAST Passes
+       │
+       ▼
+ Manual Approval Required
+       │
+       ▼
+ Deploy to Production
+```
+
+Production deployment cannot proceed until an authorized approver approves the release.
+
+---
+
+## 9. Deploy to Production
+
+### Conditions
+
+Production deployment occurs only when:
+
+* All previous stages succeed.
+* Manual approval is granted.
+* The branch is `main`.
+
+```yaml
+condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+```
+
+---
+
+## 10. Automatic Rollback
+
+### When It Runs
+
+If production deployment fails.
+
+```yaml
+condition: failed()
+```
+
+### Rollback Strategy
+
+1. Download previous deployment artifact.
+2. Read the last successful image tag.
+3. Roll back backend.
+4. Roll back frontend.
+5. Restore service automatically.
+
+### Rollback Workflow
+
+```text
+Production Failure
+       │
+       ▼
+Download Previous Tag
+       │
+       ▼
+Read Image Version
+       │
+       ▼
+Rollback Backend
+       │
+       ▼
+Rollback Frontend
+       │
+       ▼
+Service Restored
+```
+
+### Benefits
+
+* Recovery in minutes
+* No manual intervention
+* Reduced downtime
+* Safer releases
+
+---
+
+## Security Gates
+
+Every stage acts as a deployment gate.
+
+| Stage           | Blocks Deployment on Failure |
+| --------------- | ---------------------------- |
+| Lint/Test       | Yes                          |
+| SCA             | Yes                          |
+| SAST            | Yes                          |
+| Container Scan  | Yes                          |
+| DAST            | Yes                          |
+| Manual Approval | Yes                          |
+
+No insecure or unstable code reaches production.
+
+---
+
+## Deployment Strategy
+
+| Branch    | Environment |
+| --------- | ----------- |
+| `develop` | Staging     |
+| `main`    | Production  |
+
+This enables safe progressive delivery.
+
+---
+
+## Artifacts Generated
+
+The pipeline stores:
+
+* Test reports
+* Coverage reports
+* SCA results
+* SAST results
+* Container scan reports
+* DAST reports
+* Deployment image tags
+
+### Why These Matter
+
+* Auditing, Compliance, Troubleshooting, Rollbacks, Historical analysis
+
+---
+
+---
+
+## Best Practices Implemented
+
+* Shift-left security
+* Immutable deployments
+* Automated testing
+* Security at every stage
+* Manual production approval
+* Automatic rollback
+* Secure secret management
+* Environment isolation
+
+---
+
+## Final Summary
+
+This pipeline delivers enterprise-grade software delivery by combining:
+
+* Continuous Integration
+* Continuous Delivery
+* Security Automation
+* Governance Controls
+* Operational Resilience
+
+It ensures that only secure, tested, approved, and traceable code reaches production.
 
