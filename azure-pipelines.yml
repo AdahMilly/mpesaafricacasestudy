@@ -1,19 +1,92 @@
-# Starter pipeline
-# Start with a minimal pipeline that you can customize to build and deploy your code.
-# Add steps that build, run tests, deploy, and more:
-# https://aka.ms/yaml
-
 trigger:
-- main
+  branches:
+    include:
+      - main
+      - develop
 
-pool:
-  vmImage: ubuntu-latest
+pr:
+  branches:
+    include:
+      - main
+      - develop
 
-steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
+variables:
+  - group: casestudy-variable-group
+  - name: IMAGE_TAG
+    value: $(Build.SourceVersion)
 
-- script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
+stages:
+  - stage: LintTest
+    displayName: "Lint, Test & Code Coverage"
+    jobs:
+      - template: stages/lint-test.yml
+
+  - stage: SCAScan
+    displayName: "Software Composition Analysis (SCA)"
+    dependsOn: LintTest
+    condition: succeeded()
+    jobs:
+      - template: pipelines/sca-scan.yml
+
+  - stage: SASTScan
+    displayName: "Static Application Security Testing (SAST)"
+    dependsOn: SCAScan
+    condition: succeeded()
+    jobs:
+      - template: pipelines/sast-scan.yml
+
+  - stage: BuildPush
+    displayName: "Build & Push Docker Image"
+    dependsOn:
+      - SCAScan
+      - SASTScan
+    condition: "and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))"
+    jobs:
+      - template: pipelines/build-push.yml
+        parameters:
+          imageTag: $(IMAGE_TAG)
+
+  - stage: ContainerScan
+    displayName: "Container Vulnerability Scan"
+    dependsOn: BuildPush
+    condition: "and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))"
+    jobs:
+      - template: pipelines/container-scan.yml
+        parameters:
+          imageTag: $(IMAGE_TAG)
+
+  - stage: DeployStaging
+    displayName: "Deploy to Staging"
+    dependsOn: ContainerScan
+    condition: "and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))"
+    jobs:
+      - template: pipelines/deploy.yml
+        parameters:
+          imageTag: $(IMAGE_TAG)
+          environment: staging
+
+  - stage: DASTScan
+    displayName: "Dynamic Application Security Testing (DAST)"
+    dependsOn: DeployStaging
+    condition: succeeded()
+    jobs:
+      - template: pipelines/dast-scan.yml
+
+  - stage: DeployProduction
+    displayName: "Deploy to Production"
+    dependsOn: DASTScan
+    condition: "and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))"
+    jobs:
+      - template: pipelines/deploy.yml
+        parameters:
+          imageTag: $(IMAGE_TAG)
+          environment: production
+
+  - stage: Rollback
+    displayName: "Production Rollback"
+    dependsOn: DeployProduction
+    condition: failed()
+    jobs:
+      - template: pipelines/rollback.yml
+        parameters:
+          environment: production

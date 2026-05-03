@@ -1,0 +1,44 @@
+parameters:
+  - name: imageTag
+    type: string
+  - name: environment
+    type: string
+
+jobs:
+  - deployment: Deploy
+    displayName: Deploy to ${{ parameters.environment }}
+    pool: self-hosted
+    environment: ${{ parameters.environment }}
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+            - script: |
+                echo "Deploying images with tag: ${{ parameters.imageTag }}"
+              displayName: Log deployment info
+
+            - task: AzureCLI@2
+              displayName: Deploy to Azure Container Apps
+              inputs:
+                azureSubscription: $(AZURE_SERVICE_CONNECTION)
+                scriptType: bash
+                scriptLocation: inlineScript
+                inlineScript: |
+                  az containerapp update \
+                    --name casestudy-backend \
+                    --resource-group $(AZURE_RESOURCE_GROUP) \
+                    --image $(ACR_REGISTRY)/casestudy-backend:${{ parameters.imageTag }}
+
+                  az containerapp update \
+                    --name casestudy-frontend \
+                    --resource-group $(AZURE_RESOURCE_GROUP) \
+                    --image $(ACR_REGISTRY)/casestudy-frontend:${{ parameters.imageTag }}
+
+            - script: |
+                echo "${{ parameters.imageTag }}" > $(Build.ArtifactStagingDirectory)/previous-tag.txt
+              displayName: Save deployed tag
+
+            - task: PublishBuildArtifacts@1
+              inputs:
+                PathtoPublish: $(Build.ArtifactStagingDirectory)
+                ArtifactName: deployed-tag

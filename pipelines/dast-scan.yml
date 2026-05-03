@@ -1,0 +1,66 @@
+jobs:
+  - job: DAST_Scan
+    displayName: Dynamic Application Security Testing (DAST)
+    pool:
+      vmImage: ubuntu-latest
+
+    steps:
+      - checkout: none
+        displayName: No Source Checkout (tests running app only)
+
+      - script: |
+          echo "Starting DAST scan against staging environment"
+          echo "Target URL: $(STAGING_URL)"
+        displayName: DAST Target Initialization
+
+      - script: |
+          docker run --rm -t owasp/zap2docker-stable \
+            zap-baseline.py \
+            -t $(STAGING_URL) \
+            -r zap-report.html \
+            -x zap-report.xml \
+            -J zap-report.json \
+            -m 5 \
+            -a
+        displayName: OWASP ZAP Baseline Scan
+        continueOnError: false
+
+      - script: |
+          docker run --rm -t owasp/zap2docker-stable \
+            zap-full-scan.py \
+            -t $(STAGING_URL) \
+            -r zap-full-report.html \
+            -x zap-full-report.xml \
+            -J zap-full-report.json \
+            -m 5
+        displayName: OWASP ZAP Full Active Scan
+        continueOnError: true
+
+      - script: |
+          echo "Running API security checks..."
+
+          curl -s $(STAGING_URL)/api/health || exit 1
+          curl -s $(STAGING_URL)/api/transactions || true
+        displayName: Basic API Endpoint Validation
+
+      - script: |
+          echo "Evaluating DAST results..."
+
+          if grep -q "High" zap-report.html; then
+            echo "##vso[task.logissue type=error]High severity vulnerabilities found in DAST scan."
+            exit 1
+          fi
+
+          if grep -q "Critical" zap-report.html; then
+            echo "##vso[task.logissue type=error]Critical vulnerabilities found in DAST scan."
+            exit 1
+          fi
+
+        displayName: Fail Pipeline on Critical Issues
+
+      - task: PublishBuildArtifacts@1
+        displayName: Publish DAST Reports
+        condition: always()
+        inputs:
+          PathtoPublish: .
+          ArtifactName: dast-reports

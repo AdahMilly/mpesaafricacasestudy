@@ -1,0 +1,94 @@
+jobs:
+  - job: LintBackend
+    displayName: Lint, Test & Coverage - .NET Backend
+    pool: self-hosted
+
+    steps:
+      - task: UseDotNet@2
+        displayName: Use .NET 9
+        inputs:
+          packageType: sdk
+          version: 9.x
+
+      - script: dotnet restore
+        displayName: Restore NuGet Packages
+        workingDirectory: Backend/casestudy_api
+
+      - script: dotnet format --verify-no-changes
+        displayName: Lint - dotnet format
+        workingDirectory: Backend/casestudy_api
+
+      - script: dotnet build --no-restore --configuration Release
+        displayName: Build
+        workingDirectory: Backend/casestudy_api
+
+      - script: |
+          dotnet test \
+            --no-build \
+            --configuration Release \
+            --collect:"XPlat Code Coverage" \
+            --results-directory $(Agent.TempDirectory)/TestResults \
+            --logger trx
+        displayName: Run Tests with Coverage
+        workingDirectory: Backend/casestudy_api
+
+      - task: PublishTestResults@2
+        displayName: Publish Test Results
+        condition: always()
+        inputs:
+          testResultsFormat: VSTest
+          testResultsFiles: "$(Agent.TempDirectory)/TestResults/*.trx"
+
+      - script: |
+          dotnet tool install --global dotnet-reportgenerator-globaltool
+          export PATH="$PATH:$HOME/.dotnet/tools"
+
+          reportgenerator \
+            -reports:"$(Agent.TempDirectory)/TestResults/**/coverage.cobertura.xml" \
+            -targetdir:"$(Agent.TempDirectory)/CoverageReport" \
+            -reporttypes:"TextSummary"
+
+          cat "$(Agent.TempDirectory)/CoverageReport/Summary.txt"
+
+          COVERAGE=$(grep "Line coverage" "$(Agent.TempDirectory)/CoverageReport/Summary.txt" | grep -oE '[0-9]+\.[0-9]+|[0-9]+')
+          echo "Code Coverage: $COVERAGE%"
+
+          awk "BEGIN {exit !($COVERAGE >= 70)}" || {
+            echo "##vso[task.logissue type=error]Code coverage is below 70%."
+            exit 1
+          }
+        displayName: Enforce Minimum Coverage (70%)
+
+  - job: LintFrontend
+    displayName: Lint, Test & Coverage - Next.js Frontend
+    pool:
+      vmImage: ubuntu-latest
+
+    steps:
+      - task: NodeTool@0
+        displayName: Use Node 20
+        inputs:
+          versionSpec: 20.x
+
+      - script: npm ci
+        displayName: Install Dependencies
+        workingDirectory: my-app
+
+      - script: npm run lint
+        displayName: ESLint
+        workingDirectory: my-app
+
+      - script: npm run test -- --ci --coverage --passWithNoTests
+        displayName: Run Tests with Coverage
+        workingDirectory: my-app
+
+      - script: |
+          COVERAGE=$(node -p "require('./coverage/coverage-summary.json').total.lines.pct")
+          echo "Frontend Coverage: ${COVERAGE}%"
+
+          if (( $(echo "$COVERAGE < 70" | bc -l) )); then
+            echo "##vso[task.logissue type=error]Frontend test coverage is below 70%."
+            exit 1
+          fi
+        displayName: Enforce Minimum Coverage (70%)
+        workingDirectory: my-app

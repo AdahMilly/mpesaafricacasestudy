@@ -1,0 +1,66 @@
+jobs:
+  - job: SCA_Scan
+    displayName: Software Composition Analysis (SCA)
+    pool:
+      vmImage: ubuntu-latest
+
+    steps:
+      - checkout: self
+        displayName: Checkout Source Code
+
+      - task: NodeTool@0
+        displayName: Setup Node.js
+        inputs:
+          versionSpec: 20.x
+
+      - script: |
+          echo "Installing frontend dependencies..."
+          cd my-app
+          npm ci
+        displayName: Install Frontend Dependencies
+
+      - script: |
+          echo "Running npm audit (Frontend SCA)..."
+          cd my-app
+          npm audit --audit-level=moderate
+        displayName: NPM Audit Scan (Frontend)
+        continueOnError: false
+
+      - script: |
+          echo "Checking frontend licenses..."
+          cd my-app
+          npx license-checker --failOn GPL --summary
+        displayName: Frontend License Compliance Check
+
+      - task: UseDotNet@2
+        displayName: Setup .NET SDK
+        inputs:
+          packageType: sdk
+          version: 9.x
+
+      - script: |
+          echo "Restoring backend packages..."
+          dotnet restore Backend/casestudy_api
+        displayName: Restore Backend Dependencies
+
+      - script: |
+          echo "Scanning NuGet packages for vulnerabilities..."
+          dotnet list Backend/casestudy_api package --vulnerable --include-transitive
+        displayName: NuGet Vulnerability Scan (Backend)
+        continueOnError: false
+
+      - task: dependency-check-build-task@6
+        displayName: OWASP Dependency Check (Full SCA Scan)
+        inputs:
+          projectName: casestudy-api
+          scanPath: Backend/casestudy_api
+          format: "HTML,JUNIT,JSON"
+          failOnCVSS: 7
+        continueOnError: false
+
+      - task: PublishBuildArtifacts@1
+        displayName: Publish SCA Reports
+        condition: always()
+        inputs:
+          PathtoPublish: $(Common.TestResultsDirectory)
+          ArtifactName: sca-reports

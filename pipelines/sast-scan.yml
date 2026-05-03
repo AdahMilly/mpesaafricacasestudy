@@ -1,0 +1,56 @@
+jobs:
+  - job: SAST_Scan
+    displayName: Static Application Security Testing (SAST)
+    pool: self-hosted
+
+    steps:
+      - checkout: self
+        displayName: Checkout Source Code
+
+      - task: UseDotNet@2
+        displayName: Setup .NET SDK
+        inputs:
+          packageType: sdk
+          version: 9.x
+
+      - script: |
+          echo "Restoring and building backend for analysis..."
+          dotnet restore Backend/casestudy_api
+          dotnet build Backend/casestudy_api --configuration Release --no-restore
+        displayName: Prepare Backend (C# Analysis)
+
+      # Microsoft Security DevOps SAST engine
+      - task: MicrosoftSecurityDevOps@1
+        displayName: Run SAST Scan (Backend + IaC + Code Security)
+        inputs:
+          categories: code
+          break: true
+
+      - task: NodeTool@0
+        displayName: Setup Node.js
+        inputs:
+          versionSpec: 20.x
+
+      - script: |
+          echo "Installing frontend dependencies..."
+          cd my-app
+          npm ci
+        displayName: Install Frontend Dependencies
+
+      - script: |
+          echo "Running frontend static analysis (ESLint)..."
+          cd my-app
+          npm run lint
+        displayName: Frontend Static Analysis (ESLint SAST)
+
+      - script: |
+          echo "Scanning for hardcoded secrets..."
+          npx trufflehog filesystem . --fail
+        displayName: Secret Detection (SAST)
+
+      - task: PublishBuildArtifacts@1
+        displayName: Publish SAST Reports
+        condition: always()
+        inputs:
+          PathtoPublish: $(Agent.TempDirectory)
+          ArtifactName: sast-reports

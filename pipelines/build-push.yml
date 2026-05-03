@@ -1,0 +1,49 @@
+parameters:
+  - name: imageTag
+    type: string
+
+jobs:
+  - job: BuildPush
+    displayName: Build & Push to ACR
+    pool: self-hosted
+    steps:
+      - task: Docker@2
+        displayName: Login to ACR
+        inputs:
+          command: login
+          containerRegistry: $(ACR_SERVICE_CONNECTION)
+
+      - task: Docker@2
+        displayName: Build & Push Backend
+        inputs:
+          command: buildAndPush
+          dockerfile: Backend/casestudy_api/Dockerfile
+          buildContext: Backend/casestudy_api
+          containerRegistry: $(ACR_SERVICE_CONNECTION)
+          repository: $(ACR_REGISTRY)/casestudy-backend
+          tags: |
+            ${{ parameters.imageTag }}
+            latest
+
+      - task: Docker@2
+        displayName: Build & Push Frontend
+        inputs:
+          command: buildAndPush
+          dockerfile: my-app/Dockerfile
+          buildContext: my-app
+          containerRegistry: $(ACR_SERVICE_CONNECTION)
+          repository: $(ACR_REGISTRY)/casestudy-frontend
+          tags: |
+            ${{ parameters.imageTag }}
+            latest
+          buildArguments: |
+            NEXT_PUBLIC_API_URL=$(NEXT_PUBLIC_API_URL)
+
+      - script: echo "${{ parameters.imageTag }}" > $(Build.ArtifactStagingDirectory)/image-tag.txt
+        displayName: Save image tag for rollback
+
+      - task: PublishBuildArtifacts@1
+        displayName: Publish image tag artifact
+        inputs:
+          PathtoPublish: $(Build.ArtifactStagingDirectory)
+          ArtifactName: image-tag

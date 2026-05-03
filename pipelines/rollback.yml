@@ -1,0 +1,48 @@
+parameters:
+  - name: environment
+    type: string
+
+jobs:
+  - deployment: Rollback
+    displayName: Rollback ${{ parameters.environment }}
+    pool: self-hosted
+    environment: ${{ parameters.environment }}
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+            - task: DownloadBuildArtifacts@1
+              displayName: Download previous image tag
+              inputs:
+                buildType: specific
+                project: $(System.TeamProjectId)
+                pipeline: $(System.DefinitionId)
+                buildVersionToDownload: latestFromBranch
+                branchName: refs/heads/main
+                artifactName: deployed-tag
+                downloadPath: $(Pipeline.Workspace)
+
+            - script: |
+                PREVIOUS_TAG=$(cat $(Pipeline.Workspace)/deployed-tag/previous-tag.txt)
+                echo "Rolling back to image tag: $PREVIOUS_TAG"
+                echo "##vso[task.setvariable variable=PREVIOUS_TAG]$PREVIOUS_TAG"
+              displayName: Read previous tag
+
+            - task: AzureCLI@2
+              displayName: Rollback Container Apps
+              inputs:
+                azureSubscription: $(AZURE_SERVICE_CONNECTION)
+                scriptType: bash
+                scriptLocation: inlineScript
+                inlineScript: |
+                  az containerapp update \
+                    --name casestudy-backend \
+                    --resource-group $(AZURE_RESOURCE_GROUP) \
+                    --image $(ACR_REGISTRY)/casestudy-backend:$(PREVIOUS_TAG)
+
+                  az containerapp update \
+                    --name casestudy-frontend \
+                    --resource-group $(AZURE_RESOURCE_GROUP) \
+                    --image $(ACR_REGISTRY)/casestudy-frontend:$(PREVIOUS_TAG)
+
+                  echo "Rollback complete to tag: $(PREVIOUS_TAG)"
