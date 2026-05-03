@@ -1036,7 +1036,7 @@ Evolve from Docker Compose to a container orchestration platform like Kubernetes
 
 #### Benefits
 
-- **Auto-scaling:** Handle salary-date traffic spikes automatically  
+- **Auto-scaling:** Handle traffic spikes automatically  
 - **Self-healing:** Restart failed services without manual intervention  
 - **Rolling deployments & fast rollbacks:** Safer releases across all deployements   
 
